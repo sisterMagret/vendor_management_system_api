@@ -1,0 +1,11 @@
+django==4.2
+djangorestframework
+markdown  
+django-filter
+djangorestframework-jwt
+djangorestframework-simplejwt
+drf-yasg
+drfdocs
+python-decouple
+psycopg2-binary
+pytz
