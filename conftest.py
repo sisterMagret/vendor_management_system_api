@@ -68,32 +68,32 @@ def buyer(new_user) -> tuple:
     return instance
 
 
-@pytest.fixture
-def buyer_auth_client(buyer, client, user_data):
-    """
-    Fixture to create an authenticated API client.
-    """
-    endpoint = "/api/auth/"
-    # Create a user
+# @pytest.fixture
+# def buyer_auth_client(buyer, client, user_data):
+#     """
+#     Fixture to create an authenticated API client.
+#     """
+#     endpoint = "/api/auth/"
+#     # Create a user
 
-    # Authenticate the client
-    auth_client = client.post(
-        f"{endpoint}login/",
-        dict(
-            username=buyer.user.email,
-            password=user_data.get("password"),
-        ),
-        content_type="application/json",
-    )
-    print(auth_client.json())
-    assert auth_client.status_code == 200
-    assert auth_client["token"]
-    assert auth_client["data"]
+#     # Authenticate the client
+#     auth_client = client.post(
+#         f"{endpoint}login/",
+#         dict(
+#             username=buyer.user.email,
+#             password=user_data.get("password"),
+#         ),
+#         content_type="application/json",
+#     )
+#     print(auth_client.json())
+#     assert auth_client.status_code == 200
+#     assert auth_client["token"]
+#     assert auth_client["data"]
 
-    auth_client.credentials(
-        HTTP_AUTHORIZATION="Bearer " + auth_client.data["token"]["access"]
-    )
-    return auth_client
+#     auth_client.credentials(
+#         HTTP_AUTHORIZATION="Bearer " + auth_client.data["token"]["access"]
+#     )
+#     return auth_client
 
 
 @pytest.fixture

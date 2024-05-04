@@ -25,7 +25,7 @@ schema_view = get_schema_view(
         terms_of_service="https://www.google.com/policies/terms/",
         contact=openapi.Contact(email="contact@farmfeat.com"),
         license=openapi.License(name="BSD License"),
-        url=f"{env_loc('BASE_BE_URL')}",
+        url=f"{env_loc('BASE_BE_URL', 'api/')}",
     ),
     public=True,
     authentication_classes=(SessionAuthentication, JWTAuthentication),
