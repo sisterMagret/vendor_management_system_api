@@ -3,19 +3,20 @@ from functools import wraps
 from rest_framework import status
 from rest_framework.response import Response
 
-from apps.users.models import BuyerSetting, User
-from apps.utils.enums import BuyerTypeEnum, UserGroup
+from apps.utils.enums import UserGroup
 
 
-def farmer_access_only():
+def vendor_access_only():
     """
-    Grant permission to farmer alone
+    Grant permission to vendors alone
     """
 
     def decorator(func):
         @wraps(func)
         def wrapper(request, *args, **kwargs):
-            if not request.user.groups.filter(name=UserGroup.FARMER).exists():
+            if not request.user.groups.filter(
+                name=UserGroup.VENDOR
+            ).exists():
                 return Response(
                     {
                         "status": status.HTTP_403_FORBIDDEN,
@@ -31,16 +32,16 @@ def farmer_access_only():
     return decorator
 
 
-def business_user_access_only():
+def buyer_access_only():
     """
-    Grant permission to business users
+    Grant permission to buyers
     """
 
     def decorator(func):
         @wraps(func)
         def wrapper(request, *args, **kwargs):
-            if not BuyerSetting.objects.filter(
-                user=request.user, type=BuyerTypeEnum.BUSINESS
+            if not request.user.groups.filter(
+                name=UserGroup.BUYER
             ).exists():
                 return Response(
                     {

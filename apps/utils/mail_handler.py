@@ -5,7 +5,16 @@ from config.settings import EMAIL_HOST_USER
 
 
 class EmailHandler:
-    def __init__(self, to, subject, message=None, cc=None, bcc=None, reply_to=None, files=None):
+    def __init__(
+        self,
+        to,
+        subject,
+        message=None,
+        cc=None,
+        bcc=None,
+        reply_to=None,
+        files=None,
+    ):
         self.subject = subject
         self.to = to
         self.cc = cc
@@ -42,7 +51,9 @@ class EmailHandler:
             self.email.bcc = [x.strip() for x in self.bcc.split(",")]
 
         if self.reply_to:
-            self.email.reply_to = [x.strip() for x in self.reply_to.split(",")]
+            self.email.reply_to = [
+                x.strip() for x in self.reply_to.split(",")
+            ]
         try:
             dat = self.email.send()
             return {"status": True}

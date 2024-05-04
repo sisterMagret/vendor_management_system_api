@@ -30,7 +30,10 @@ class CustomEnum(object):
     @classmethod
     def choices(c):
         attrs = [a for a in c.__dict__.keys() if a.isupper()]
-        values = [(c.__dict__[v], CustomEnum.Enum(v, c.__dict__[v], c).__str__()) for v in attrs]
+        values = [
+            (c.__dict__[v], CustomEnum.Enum(v, c.__dict__[v], c).__str__())
+            for v in attrs
+        ]
         return sorted(values, key=lambda x: x[0])
 
     @classmethod
@@ -51,7 +54,9 @@ class CustomEnum(object):
             class MyModel(Model):
                 status = MyModelStatuses.field(label='my status')
         """
-        field = PositiveSmallIntegerField(choices=cls.choices(), default=cls.default(), **kwargs)
+        field = PositiveSmallIntegerField(
+            choices=cls.choices(), default=cls.default(), **kwargs
+        )
         field.enum = cls
         return field
 
@@ -76,14 +81,20 @@ class CustomEnum(object):
     @classmethod
     def key(c, key):
         try:
-            return [value for name, value in c.__dict__.items() if name == key.upper()][0]
+            return [
+                value
+                for name, value in c.__dict__.items()
+                if name == key.upper()
+            ][0]
         except Exception:
             return None
 
     @classmethod
     def name(c, key):
         try:
-            return [name for name, value in c.__dict__.items() if value == key][0]
+            return [
+                name for name, value in c.__dict__.items() if value == key
+            ][0]
         except Exception:
             return None
 
@@ -108,7 +119,10 @@ class CustomEnum(object):
 
     @classmethod
     def is_valid_transition(c, from_status, to_status):
-        return from_status == to_status or from_status in c.transition_origins(to_status)
+        return (
+            from_status == to_status
+            or from_status in c.transition_origins(to_status)
+        )
 
     @classmethod
     def transition_origins(c, to_status):
@@ -124,13 +138,9 @@ class UserGroup(CustomEnum):
     BUYER = "buyer"
     VENDOR = "vendor"
 
-
     @classmethod
     def choices(cls):
-        return (
-            (cls.BUYER, "BUYER"),
-            (cls.VENDOR, "VENDOR")
-        )
+        return ((cls.BUYER, "BUYER"), (cls.VENDOR, "VENDOR"))
 
 
 class DeliveryType(CustomEnum):
@@ -172,7 +182,7 @@ class QualityRatingEnum(CustomEnum):
     THREE: int = 3
     FOUR: int = 4
     FIVE: int = 5
- 
+
 
 class FulfillmentStatusEnum(CustomEnum):
     DELIVERED = "delivered"
@@ -184,5 +194,3 @@ class FulfillmentStatusEnum(CustomEnum):
 class GlobalUrlConfigEnum(CustomEnum):
     API_URL = ""
     LOGIN_URL = ""
-
-

@@ -1,13 +1,17 @@
 from django.db.models import Q
 
-from apps.users.models import User
+from apps.authentication.models import User
 
 
 class CustomAuthBackend(object):
     def authenticate(self, request, username=None, password=None):
         try:
-            print(username, password)
-            user = User.objects.get(Q(email=username) | Q(mobile=username) | Q(username=username))
+
+            user = User.objects.get(
+                Q(email=username)
+                | Q(mobile=username)
+                | Q(username=username)
+            )
             if user.check_password(password):
                 return user
             return None

@@ -1,6 +1,3 @@
-from apps.utils.enums import PaymentMethodEnum
-from apps.utils.payment import PayStackHandler, RavePaymentHandler
-
 DATETIME_FORMAT = "%d/%m/%Y %I:%M %p"
 DATE_FORMAT = "%Y-%m-%d"
 DATE_FORMAT2 = "%Y %I:%M"
@@ -352,7 +349,14 @@ LOCAL_GOVERNMENTS = {
         "Uzo Uwani",
         "Udi",
     ],
-    "Abuja": ["Abaji", "Bwari", "Gwagwalada", "Kuje", "Kwali", "Municipal Area Council"],
+    "Abuja": [
+        "Abaji",
+        "Bwari",
+        "Gwagwalada",
+        "Kuje",
+        "Kwali",
+        "Municipal Area Council",
+    ],
     "Gombe": [
         "Akko",
         "Balanga",
@@ -889,9 +893,4 @@ LOCAL_GOVERNMENTS = {
         "Tsafe",
         "Zurmi",
     ],
-}
-PAYMENT_CLIENT = {
-    PaymentMethodEnum.FLUTTERWAVE: RavePaymentHandler,
-    # PaymentMethodEnum.INTERSWITCH: InterSwitchHandler,
-    PaymentMethodEnum.PAYSTACK: PayStackHandler,
 }

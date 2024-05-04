@@ -13,10 +13,11 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from apps.users.models import AuthToken, FarmerSettings, User
+from apps.authentication.models import BuyerSettings, User
+from apps.authentication.serializer import Vendor
 from apps.utils.pagination import CustomPaginator
 
-logger = logging.getLogger("order")
+logger = logging.getLogger("base")
 
 
 class Addon:
@@ -37,18 +38,12 @@ class Addon:
             return self.generate_uuid(model, column)
         return unique
 
-    @staticmethod
-    def create_auth_token(data):
-        instance = AuthToken.objects.create(**data)
-        return instance
-
-    @staticmethod
-    def create_farmer(data):
-        instance = FarmerSettings.objects.create(**data)
-        return instance
-
-    def unique_number_generator(self, model, field, length=6, allowed_chars="0123456789"):
-        unique = get_random_string(length=length, allowed_chars=allowed_chars)
+    def unique_number_generator(
+        self, model, field, length=6, allowed_chars="0123456789"
+    ):
+        unique = get_random_string(
+            length=length, allowed_chars=allowed_chars
+        )
         kwargs = {field: unique}
         qs_exists = model.objects.filter(**kwargs).exists()
         if qs_exists:
@@ -63,7 +58,9 @@ class Addon:
         allowed_chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
         prefix=None,
     ):
-        unique = get_random_string(length=length, allowed_chars=allowed_chars)
+        unique = get_random_string(
+            length=length, allowed_chars=allowed_chars
+        )
         if prefix:
             unique = f"{prefix}_{unique}"
         kwargs = {field: unique}
@@ -71,71 +68,6 @@ class Addon:
         if qs_exists:
             return self.unique_alpha_numeric_generator(model, field)
         return unique
-
-    @staticmethod
-    def delete_auth_token(data):
-        try:
-            AuthToken.objects.filter(**data).first().delete()
-        except Exception as ex:
-            pass
-
-    @staticmethod
-    def check_model_field_exist(model, data):
-        if model.objects.filter(**data).exists():
-            return True
-        return False
-
-    @staticmethod
-    def get_model_field(model, data):
-        return model.objects.filter(**data)
-
-    @staticmethod
-    def get_ip_address(request):
-        user_ip_address = request.META.get("HTTP_X_FORWARDED_FOR")
-        if user_ip_address:
-            ip = user_ip_address.split(",")[0]
-        else:
-            ip = request.META.get("REMOTE_ADDR")
-        return ip or None
-
-    @staticmethod
-    def get_device(request) -> dict:
-        """
-        get user device feed
-        """
-        context = {"device": "", "user_agent": "", "device_version": ""}
-        try:
-            user_device_os = request.user_agent.os
-            user_device_name = request.user_agent.device.family
-            context.update(
-                {
-                    "device": user_device_name,
-                    "user_agent": request.user_agent,
-                    "device_version": user_device_os.version_string,
-                }
-            )
-            return context
-        except Exception as e:
-            return context
-
-    def create_cart_manager(self, request, user):
-        try:
-            from django.apps import apps
-
-            cart_manager = apps.get_model("order", "CartManager")
-            data = {}
-            device_info = self.get_device(request)
-            data.update(device_info)
-            data.update({"ip_address": self.get_ip_address(request)})
-            data.update({"user": user})
-            if cart_manager.objects.filter(user=user).exists():
-                instance = cart_manager.objects.filter(user=user).first()
-            else:
-                instance = cart_manager.objects.create(**data)
-            return {"id": instance.id}
-        except Exception as ex:
-            logger.error(f"manager error due to {str(ex)}")
-            return {}
 
 
 class CustomFilter(DjangoFilterBackend):
@@ -166,24 +98,28 @@ class AbstractBaseViewSet:
         return user.seller
 
     @staticmethod
-    def get_farmer(request):
+    def get_buyer(request):
         if request.GET.get("farmer_id") is None:
             return None
-        return FarmerSettings.objects.filter(id=request.GET.get("farmer_id")).first()
+        return BuyerSettings.objects.filter(
+            id=request.GET.get("buy_id")
+        ).first()
+
+    @staticmethod
+    def get_vendor(request):
+        if request.GET.get("vendor_id") is None:
+            return None
+        return Vendor.objects.filter(
+            id=request.GET.get("vendor_id")
+        ).first()
 
     @staticmethod
     def error_message_formatter(serializer_errors):
         """Formats serializer error messages to dictionary"""
-        return {f"{name}": f"{message[0]}" for name, message in serializer_errors.items()}
-
-    @staticmethod
-    def price_filtering(price_from, price_to, queryset):
-        if price_from and price_to:
-            try:
-                queryset = queryset.filter(sales_price__range=[float(price_from), float(price_to)])
-            except Exception as ex:
-                logger.error(f"error filtering price due to {str(ex)}")
-        return queryset
+        return {
+            f"{name}": f"{message[0]}"
+            for name, message in serializer_errors.items()
+        }
 
 
 class BaseViewSet(ViewSet, AbstractBaseViewSet, Addon):
@@ -193,7 +129,11 @@ class BaseViewSet(ViewSet, AbstractBaseViewSet, Addon):
     @staticmethod
     def get_data(request) -> dict:
         """Returns a dictionary from the request"""
-        return request.data if isinstance(request.data, dict) else request.data.dict()
+        return (
+            request.data
+            if isinstance(request.data, dict)
+            else request.data.dict()
+        )
 
     def get_list(self, queryset):
         if "search" in self.request.query_params:
@@ -227,7 +167,11 @@ class BaseModelViewSet(ModelViewSet, AbstractBaseViewSet, Addon):
 
     @staticmethod
     def get_data(request) -> dict:
-        return request.data if isinstance(request.data, dict) else request.data.dict()
+        return (
+            request.data
+            if isinstance(request.data, dict)
+            else request.data.dict()
+        )
 
     def get_list(self, queryset):
         if "search" in self.request.query_params:
@@ -269,11 +213,18 @@ class BaseNoAuthViewSet(ViewSet, Addon):
     @staticmethod
     def error_message_formatter(serializer_errors):
         """Formats serializer error messages to dictionary"""
-        return {f"{name}": f"{message[0]}" for name, message in serializer_errors.items()}
+        return {
+            f"{name}": f"{message[0]}"
+            for name, message in serializer_errors.items()
+        }
 
     @staticmethod
     def get_data(request) -> dict:
-        return request.data if isinstance(request.data, dict) else request.data.dict()
+        return (
+            request.data
+            if isinstance(request.data, dict)
+            else request.data.dict()
+        )
 
     @abstractmethod
     def get_queryset(self):
@@ -295,7 +246,9 @@ class BaseNoAuthViewSet(ViewSet, Addon):
         else:
             query_set = queryset
         if "ordering" in self.request.query_params:
-            query_set = self.order_backend.filter_queryset(query_set, self.request, self)
+            query_set = self.order_backend.filter_queryset(
+                query_set, self.request, self
+            )
         else:
             query_set = query_set.order_by("-pk")
         return query_set
@@ -314,11 +267,20 @@ class BaseNoAuthViewSet(ViewSet, Addon):
         context = {"status": status.HTTP_200_OK}
         try:
             paginate = self.paginator(
-                queryset=self.get_list(self.get_queryset()), serializer_class=self.serializer_class
+                queryset=self.get_list(self.get_queryset()),
+                serializer_class=self.serializer_class,
             )
-            context.update({"status": status.HTTP_200_OK, "message": "OK", "data": paginate})
+            context.update(
+                {
+                    "status": status.HTTP_200_OK,
+                    "message": "OK",
+                    "data": paginate,
+                }
+            )
         except Exception as ex:
-            context.update({"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)})
+            context.update(
+                {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
+            )
         return Response(context, status=context["status"])
 
     @swagger_auto_schema(
@@ -328,9 +290,13 @@ class BaseNoAuthViewSet(ViewSet, Addon):
     def retrieve(self, requests, *args, **kwargs):
         context = {"status": status.HTTP_200_OK}
         try:
-            context.update({"data": self.serializer_class(self.get_object()).data})
+            context.update(
+                {"data": self.serializer_class(self.get_object()).data}
+            )
         except Exception as ex:
-            context.update({"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)})
+            context.update(
+                {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
+            )
         return Response(context, status=context["status"])
 
     @staticmethod
@@ -338,7 +304,9 @@ class BaseNoAuthViewSet(ViewSet, Addon):
         if price_from and price_to:
             if (price_from and price_to) or price_from > price_to:
                 price_to, price_from = price_from, price_to
-                queryset = queryset.filter(sales_price__range=[price_from, price_to])
+                queryset = queryset.filter(
+                    sales_price__range=[price_from, price_to]
+                )
             elif price_from and price_to is None:
                 queryset = queryset.filter(sales_price__gte=price_from)
             elif price_to and price_from is None:
