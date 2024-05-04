@@ -1,9 +1,9 @@
 from django.db import models
 
 
-class FarmerAbstract(models.Model):
-    farmer = models.ForeignKey(
-        "users.FarmerSettings",
+class VendorAbstract(models.Model):
+    vendor = models.ForeignKey(
+        "authentication.VendorProfile",
         related_name="%(class)s",
         on_delete=models.CASCADE,
         null=True,

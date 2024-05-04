@@ -208,7 +208,7 @@ if DEBUG is False:
     USE_X_FORWARDED_HOST = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-BASE_BE_URL = config("BASE_BE_URL")
+BASE_BE_URL = config("BASE_BE_URL", "api/auth")
 
 
 import pytest
