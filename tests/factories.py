@@ -2,7 +2,7 @@ import factory
 from django.contrib.auth import get_user_model
 from faker import Faker
 
-from apps.authentication.models import BuyerSettings
+from apps.users.models import BuyerSettings
 
 faker = Faker()
 

@@ -23,7 +23,7 @@ class User(AbstractUser, AbstractUUID):
     is_accept_terms_and_condition = models.BooleanField(
         default=False, blank=True
     )
-    referral_code = models.CharField(max_length=255, null=True, blank=True)
+    referral_code = models.CharField(max_length=255, null=True, blank=True, unique=True)
     updated_at = models.DateTimeField(auto_now=True, editable=False)
     date_joined = models.DateTimeField(
         auto_now_add=True, editable=False, null=True, blank=True
@@ -62,3 +62,20 @@ class BuyerSettings(AbstractUUID):
         db_table = "buyer_settings"
         verbose_name = "Buyer Setting"
         verbose_name_plural = "Buyer Settings"
+
+
+class VendorProfile(AbstractUUID):
+    """Vendor Profile"""
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="vendor",
+        null=True,
+        blank=True,
+    )
+    vendor_code = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    business_name = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    on_time_delivery_rate = models.FloatField(default=0.0)
+    quality_rating_avg = models.FloatField(default=0.0)
+    average_response_time = models.FloatField(default=0.0)
+    fulfillment_rate = models.FloatField(default=0.0)

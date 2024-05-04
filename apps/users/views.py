@@ -17,8 +17,8 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.authentication.models import BuyerSettings
-from apps.authentication.serializer import (BuyerFormSerializer,
+from apps.users.models import BuyerSettings, VendorProfile
+from apps.users.serializer import (BuyerFormSerializer,
                                             BuyerRegistrationSerializer,
                                             BuyerSettingsSerializer,
                                             UserFormSerializer, UserSerializer,
@@ -27,11 +27,10 @@ from apps.authentication.serializer import (BuyerFormSerializer,
                                             VendorSerializer)
 from apps.utils.base import (Addon,BaseViewSet)
 from apps.utils.enums import UserGroup
-from apps.utils.permissions import buyer_access_only
+from apps.utils.permissions import buyer_access_only, vendor_access_only
 
 logger = logging.getLogger("authentication")
 
-Vendor = apps.get_model("vendors", "VendorProfile")
 User = get_user_model()
 
 
@@ -235,6 +234,9 @@ class UserViewSet(BaseViewSet):
 
     def get_queryset(self):
         return self.queryset
+    
+    def get_object(self):
+        return get_object_or_404(User, pk=self.kwargs.get("pk"))
 
     def list(self, request, *args, **kwargs):
         context = {"status": status.HTTP_200_OK}
@@ -323,15 +325,36 @@ class UserViewSet(BaseViewSet):
         except Exception as ex:
             context.update({"message": str(ex)})
         return Response(context, status=context["status"])
+    
+    @swagger_auto_schema(
+        operation_description="",
+        responses={},
+        operation_summary="Deletes user account",
+    )
+    @action(
+        detail=False,
+        methods=["delete"],
+        description="Deletes user account",
+    )
+    def me(self, request, *args, **kwargs):
+        context = {"status": status.HTTP_204_NO_CONTENT}
+        try:
+            user = get_object_or_404(User, pk=request.user.id)
+            user.delete()
+        except Exception as ex:
+            context.update(
+                {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
+            )
+        return Response(context, status=context["status"])
 
 
 class VendorViewSet(BaseViewSet):
-    queryset = Vendor.objects.select_related("user").all()
+    queryset = VendorProfile.objects.select_related("user").all()
     serializer_class = VendorSerializer
     serializer_form_class = VendorFormSerializer
 
     def get_object(self):
-        return get_object_or_404(Vendor, pk=self.kwargs.get("pk"))
+        return get_object_or_404(VendorProfile, pk=self.kwargs.get("pk"))
 
     def get_queryset(self):
         return self.queryset
@@ -363,22 +386,21 @@ class VendorViewSet(BaseViewSet):
         description="Get vendor profile settings (user preferred farmer account)",
         url_path="setting",
     )
+    @method_decorator(vendor_access_only(), name="dispatch")
     def me(self, request, *args, **kwargs):
         context = {"status": status.HTTP_200_OK}
         try:
-            farmers = self.queryset.filter(user=request.user)
-            if farmers.filter(is_current=True):
+            vendor = self.queryset.filter(user=request.user)
+            if vendor.exists():
                 context.update(
                     {
                         "data": self.serializer_class(
-                            farmers.filter(is_current=True).first()
+                            vendor.first()
                         ).data
                     }
                 )
             else:
-                context.update(
-                    {"data": self.serializer_class(farmers.first()).data}
-                )
+                raise Exception("profile does not exist")
         except Exception as ex:
             context.update(
                 {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
@@ -391,6 +413,7 @@ class VendorViewSet(BaseViewSet):
         responses={},
         operation_summary="Update vendor profile",
     )
+    @method_decorator(vendor_access_only(), name="dispatch")
     def update(self, request, *args, **kwargs):
         context = {"status": status.HTTP_200_OK}
         try:
@@ -421,6 +444,18 @@ class VendorViewSet(BaseViewSet):
                     "status": status.HTTP_400_BAD_REQUEST,
                 }
             )
+        return Response(context, status=context["status"])
+
+    @swagger_auto_schema(
+        operation_description="Retrieve product details",
+        operation_summary="Retrieve product details",
+    )
+    def retrieve(self, requests, *args, **kwargs):
+        context = {"status": status.HTTP_200_OK}
+        try:
+            context.update({"data": self.serializer_class(self.get_object()).data})
+        except Exception as ex:
+            context.update({"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)})
         return Response(context, status=context["status"])
 
 

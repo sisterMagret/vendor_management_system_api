@@ -7,7 +7,7 @@ from faker import Faker
 from pytest_factoryboy import register
 from rest_framework.test import APIClient
 
-from apps.authentication.models import BuyerSettings
+from apps.users.models import BuyerSettings
 from apps.purchase_orders.models import PurchaseOrder
 from apps.utils.enums import POStatusEnum, QualityRatingEnum, UserGroup
 from apps.vendors.models import VendorProfile

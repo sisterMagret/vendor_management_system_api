@@ -6,15 +6,12 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from rest_framework import serializers
 
-from apps.authentication.models import BuyerSettings, User
+from apps.users.models import BuyerSettings, User, VendorProfile
 from apps.utils.constant import DATETIME_FORMAT
 from apps.utils.enums import UserGroup
-from apps.utils.random_number_generator import unique_number_generator
+from apps.utils.random_number_generator import unique_alpha_numeric_generator, unique_number_generator
 
 logger = logging.getLogger("authentication")
-
-
-Vendor = apps.get_model("vendors", "VendorProfile")
 
 
 def generate_uuid(model, column):
@@ -185,6 +182,7 @@ class VendorRegistrationSerializer(serializers.Serializer):
     city = serializers.CharField(required=False)
     zip_code = serializers.CharField(required=False)
     business_name = serializers.CharField(required=False)
+   
 
     def update(self, instance, validated_data):
         for k, v in validated_data.items():
@@ -199,7 +197,6 @@ class VendorRegistrationSerializer(serializers.Serializer):
             "last_name": validated_data.get("last_name"),
             "mobile": validated_data.get("mobile"),
             "email": validated_data.get("email"),
-            "hear_about_us": validated_data.get("hear_about_us"),
             "is_accept_terms_and_condition": validated_data.get(
                 "is_accept_terms_and_condition"
             ),
@@ -208,35 +205,36 @@ class VendorRegistrationSerializer(serializers.Serializer):
         instance.set_password(validated_data.get("password"))
         instance.save()
         group, _ = Group.objects.get_or_create(name=UserGroup.VENDOR)
-        _ = Vendor.objects.create(
+        _ = VendorProfile.objects.create(
             **{
                 "user": instance,
-                "ref_code": unique_number_generator(Vendor, "reg_no", 8),
+                "vendor_code": unique_alpha_numeric_generator(VendorProfile, "vendor_code", 8),
+                "business_name": validated_data.get("business_name")
             }
         )
         instance.groups.add(group)
         instance.save()
         return instance
 
-    def validate(self, attrs):
-        """make sure contact details are are provided by the vendor"""
-        pass
-
 
 class VendorSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
     class Meta:
-        model = Vendor
+        model = VendorProfile
         fields = "__all__"
 
 
 class VendorMiniSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Vendor
+        model = VendorProfile
         fields = [
             "id",
-            "ref_code",
+            "vendor_code",
+            "on_time_delivery_rate",
+            "quality_rating_avg",
+            "average_response_time",
+            "fulfillment_rate"
         ]
 
 
