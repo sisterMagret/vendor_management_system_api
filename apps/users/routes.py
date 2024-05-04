@@ -1,6 +1,6 @@
 from rest_framework.routers import DefaultRouter
 
-from apps.authentication.views import (AuthViewSet, BuyerSettingsViewSet,
+from apps.users.views import (AuthViewSet, BuyerSettingsViewSet,
                                        UserViewSet, VendorViewSet)
 
 router = DefaultRouter()

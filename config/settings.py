@@ -57,8 +57,7 @@ INSTALLED_APPS += [
 
 # User defined apps
 INSTALLED_APPS += [
-    "apps.authentication",
-    "apps.vendors",
+    "apps.users",
     "apps.purchase_orders",
     "apps.metrics",
 ]
@@ -164,7 +163,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-AUTH_USER_MODEL = "authentication.User"
+AUTH_USER_MODEL = "users.User"
 AUTHENTICATION_BACKENDS = ("apps.utils.authentication.CustomAuthBackend",)
 
 # Internationalization

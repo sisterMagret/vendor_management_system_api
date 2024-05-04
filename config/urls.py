@@ -11,8 +11,8 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from apps.authentication import routes as account_route
-from apps.authentication.views import account_logout
+from apps.users import routes as account_route
+from apps.users.views import account_logout
 from config import settings
 
 schema_view = get_schema_view(

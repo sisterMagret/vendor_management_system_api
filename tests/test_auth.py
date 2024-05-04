@@ -2,7 +2,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import status
 
-from apps.authentication.models import BuyerSettings
+from apps.users.models import BuyerSettings
 from apps.utils.enums import UserGroup
 
 User = get_user_model()
