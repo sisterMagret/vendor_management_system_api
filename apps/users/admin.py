@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import BuyerSettings, User
+from .models import BuyerSettings, User, VendorProfile
 
 
 class UserAdmin(admin.ModelAdmin):
@@ -23,6 +23,17 @@ class UserAdmin(admin.ModelAdmin):
 class BuyerSettingsAdmin(admin.ModelAdmin):
     list_display = ("id", "business_name", "user")
 
+class VendorProfileAdmin(admin.ModelAdmin):
+    list_display = (
+        "id", 
+        "user", 
+        "vendor_code",
+        "on_time_delivery_rate",
+        "quality_rating_avg",
+        "average_response_time",
+        "fulfillment_rate"
+        )
 
 admin.site.register(User, UserAdmin)
 admin.site.register(BuyerSettings, BuyerSettingsAdmin)
+admin.site.register(VendorProfile, VendorProfileAdmin)

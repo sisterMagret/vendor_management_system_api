@@ -1,6 +1,6 @@
 from django.db.models import Q
 
-from apps.authentication.models import User
+from apps.users.models import User
 
 
 class CustomAuthBackend(object):

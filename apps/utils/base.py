@@ -13,8 +13,8 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from apps.authentication.models import BuyerSettings, User
-from apps.authentication.serializer import Vendor
+from apps.users.models import BuyerSettings, User
+from apps.users.serializer import VendorProfile
 from apps.utils.pagination import CustomPaginator
 
 logger = logging.getLogger("base")
@@ -109,7 +109,7 @@ class AbstractBaseViewSet:
     def get_vendor(request):
         if request.GET.get("vendor_id") is None:
             return None
-        return Vendor.objects.filter(
+        return VendorProfile.objects.filter(
             id=request.GET.get("vendor_id")
         ).first()
 

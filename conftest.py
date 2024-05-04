@@ -7,10 +7,11 @@ from faker import Faker
 from pytest_factoryboy import register
 from rest_framework.test import APIClient
 
-from apps.authentication.models import BuyerSettings
+from apps.users.models import BuyerSettings
 from apps.purchase_orders.models import PurchaseOrder
 from apps.utils.enums import POStatusEnum, QualityRatingEnum, UserGroup
-from apps.vendors.models import VendorProfile
+from apps.users.models import VendorProfile
+from apps.utils.random_number_generator import unique_alpha_numeric_generator
 from tests.factories import UserFactory
 
 faker = Faker()
@@ -21,7 +22,7 @@ register(UserFactory)
 
 
 @pytest.fixture
-def client():
+def client(db):
     return APIClient()
 
 
@@ -68,34 +69,6 @@ def buyer(new_user) -> tuple:
     return instance
 
 
-# @pytest.fixture
-# def buyer_auth_client(buyer, client, user_data):
-#     """
-#     Fixture to create an authenticated API client.
-#     """
-#     endpoint = "/api/auth/"
-#     # Create a user
-
-#     # Authenticate the client
-#     auth_client = client.post(
-#         f"{endpoint}login/",
-#         dict(
-#             username=buyer.user.email,
-#             password=user_data.get("password"),
-#         ),
-#         content_type="application/json",
-#     )
-#     print(auth_client.json())
-#     assert auth_client.status_code == 200
-#     assert auth_client["token"]
-#     assert auth_client["data"]
-
-#     auth_client.credentials(
-#         HTTP_AUTHORIZATION="Bearer " + auth_client.data["token"]["access"]
-#     )
-#     return auth_client
-
-
 @pytest.fixture
 def second_buyer(new_user) -> tuple:
     """
@@ -110,32 +83,82 @@ def second_buyer(new_user) -> tuple:
     return instance
 
 
-# # @pytest.fixture
-# # def vendor(db,user_payload) -> VendorProfile:
-# #     """
-# #     Fixture to create a user.
-# #     """
-# #     user_payload.update(
-# #         first_name=faker.first_name(),
-# #         last_name=faker.last_name(),
-# #         email=faker.email(),
-# #         mobile=faker.phone_number(),
-# #         password="$rootpa$$",
-# #         username=faker.user_name(),
-# #     )
-# #     user = User.objects.create(**user_payload)
-# #     user.set_password(user_payload.get("password"))
-# #     group, _ = Group.objects.get_or_create(name=UserGroup.VENDOR)
-# #     user.groups.add(group)
-# #     user.save()
+@pytest.fixture
+def vendor(new_user) -> VendorProfile:
+    """
+    Fixture to create a user.
+    """
+    new_user.set_password(new_user.password)
+    group, _ = Group.objects.get_or_create(name=UserGroup.VENDOR)
+    new_user.groups.add(group)
+    new_user.save()
 
-# #     vendor_data = dict(
-# #         ref_code= "12323494",
-# #         user=user
-# #     )
-# #     vendor = VendorProfile.objects.create(**vendor_data)
-# #     assert len(vendor.ref_code) == 8
-# #     return vendor
+    vendor_data = dict(
+        vendor_code = unique_alpha_numeric_generator(VendorProfile, "vendor_code", 8),
+        business_name = "Sister Magret's PUB",
+        user=new_user
+    )
+    vendor = VendorProfile.objects.create(**vendor_data)
+    assert len(vendor.vendor_code) == 8
+    return vendor
+
+
+@pytest.fixture
+def vendor_auth_client(vendor, client, user_data):
+    """
+    Fixture to create an authenticated API client.
+    """
+    endpoint = "/api/v1/auth/login/"
+    # Create a user
+
+    # Authenticate the client
+    auth_client = client.post(
+            endpoint,
+            dict(
+                username=vendor.user.mobile, password=user_data.get("password"),
+            ),
+        )
+    
+
+    assert auth_client.status_code == 200
+    assert auth_client.data["token"]
+    assert auth_client.data["data"]
+    client.credentials(
+        HTTP_AUTHORIZATION="Bearer " + auth_client.data["token"]["access"]
+    )
+    return client
+
+
+@pytest.fixture
+def buyer_auth_client(buyer, client, user_data):
+    """
+    Fixture to create an authenticated API client.
+    """
+    endpoint = "/api/v1/auth/login/"
+    # Create a user
+
+    # Authenticate the client
+    auth_client = client.post(
+        endpoint,
+        dict(
+            username=buyer.user.email,
+            password=user_data.get("password"),
+        ),
+    )
+    assert auth_client.status_code == 200
+    assert auth_client.data["token"]
+    assert auth_client.data["data"]
+
+    client.credentials(
+        HTTP_AUTHORIZATION="Bearer " + auth_client.data["token"]["access"]
+    )
+    return client
+
+
+
+
+
+
 
 
 # # @pytest.fixture
@@ -166,29 +189,7 @@ def second_buyer(new_user) -> tuple:
 # #     return vendor
 
 
-# # @pytest.fixture
-# # def vendor_auth_client(vendor, client):
-# #     """
-# #     Fixture to create an authenticated API client.
-# #     """
-# #     endpoint = "/api/auth/"
-# #     # Create a user
 
-# #     # Authenticate the client
-# #     auth_client = client.post(
-# #             f"{endpoint}login/",
-# #             dict(
-# #                 username=vendor.user.mobile, password=vendor.user.password,
-# #             ),
-# #         )
-# #     assert auth_client.status_code == 200
-# #     assert auth_client["token"]
-# #     assert auth_client["data"]
-
-# #     auth_client.credentials(
-# #         HTTP_AUTHORIZATION="Bearer " + auth_client.data["token"]["access"]
-# #     )
-# #     return auth_client
 
 # # @pytest.fixture
 # # def po_data(buyer, second_buyer, vendor):
