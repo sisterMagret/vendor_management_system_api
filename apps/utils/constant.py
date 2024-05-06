@@ -1,4 +1,4 @@
-DATETIME_FORMAT = "%d/%m/%Y %I:%M %p"
+DATETIME_FORMAT = "%d/%m/%Y %I:%M %p" 
 DATE_FORMAT = "%Y-%m-%d"
 DATE_FORMAT2 = "%Y %I:%M"
 TIME_FORMAT = "hm:ss"

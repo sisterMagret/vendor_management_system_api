@@ -1,3 +1,4 @@
+import uuid
 from django.utils.crypto import get_random_string
 
 
@@ -23,4 +24,13 @@ def unique_number_generator(
     qs_exists = model.objects.filter(**kwargs).exists()
     if qs_exists:
         return unique_number_generator(model, field, length)
+    return unique
+
+
+def generate_uuid(model, column):
+    unique = str(uuid.uuid4())
+    kwargs = {column: unique}
+    qs_exists = model.objects.filter(**kwargs).exists()
+    if qs_exists:
+        return generate_uuid(model, column)
     return unique

@@ -2,7 +2,6 @@ from functools import wraps
 
 from rest_framework import status
 from rest_framework.response import Response
-
 from apps.utils.enums import UserGroup
 
 
@@ -14,9 +13,7 @@ def vendor_access_only():
     def decorator(func):
         @wraps(func)
         def wrapper(request, *args, **kwargs):
-            if not request.user.groups.filter(
-                name=UserGroup.VENDOR
-            ).exists():
+            if not request.user.groups.filter(name=UserGroup.VENDOR).exists():
                 return Response(
                     {
                         "status": status.HTTP_403_FORBIDDEN,
@@ -36,7 +33,6 @@ def buyer_access_only():
     """
     Grant permission to buyers
     """
-
     def decorator(func):
         @wraps(func)
         def wrapper(request, *args, **kwargs):

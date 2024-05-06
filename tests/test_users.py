@@ -126,18 +126,18 @@ def test_vendor_model(db, new_user):
 
 
 def test_get_vendor_profile(vendor_auth_client):
-    response = vendor_auth_client.get(f"/api/v1/vendors/setting/")
+    response = vendor_auth_client.get(f"/api/v1/vendors/profile/")
     assert response.status_code == status.HTTP_200_OK
     assert response.data["data"]["user"]["group"] == UserGroup.VENDOR
 
 
 def test_delete_account(vendor_auth_client):
-    response = vendor_auth_client.delete(f"/api/v1/users/me/")
+    response = vendor_auth_client.delete(f"/api/v1/users/delete/")
     assert response.status_code == status.HTTP_204_NO_CONTENT
    
 
 def test_get_buyer_profile(buyer_auth_client):
-    response = buyer_auth_client.get(f"/api/v1/buyers/setting/")
+    response = buyer_auth_client.get(f"/api/v1/buyers/profile/")
     assert response.status_code == status.HTTP_200_OK
     assert response.data["data"]["user"]["group"] == UserGroup.BUYER
 
@@ -146,10 +146,18 @@ def test_list_vendors(vendor_auth_client):
     response = vendor_auth_client.get(f"/api/v1/vendors/")
     assert response.status_code == status.HTTP_200_OK
 
+# def test_list_buyer_vendors(buyer_auth_client):
+#     response = buyer_auth_client.get(f"/api/v1/buyer/vendors/")
+#     assert response.status_code == status.HTTP_200_OK
 
-def test_list_all_users(vendor_auth_client):
-    response = vendor_auth_client.get(f"/api/v1/users/")
-    assert response.status_code == status.HTTP_200_OK
+# def test_list_vendor_buyers(vendor_auth_client):
+#     response = vendor_auth_client.get(f"/api/v1/vendor/buyers/")
+#     print(response.json())
+#     assert response.status_code == status.HTTP_200_OK
+
+# def test_list_all_users(vendor_auth_client):
+#     response = vendor_auth_client.get(f"/api/v1/users/")
+#     assert response.status_code == status.HTTP_200_OK
 
 
 # def test_refresh_tokens(buyer_auth_client):

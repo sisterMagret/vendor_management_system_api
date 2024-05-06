@@ -12,6 +12,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.users import routes as account_route
+from apps.purchase_orders import routes as  purchase_order_route
 from apps.users.views import account_logout
 from config import settings
 
@@ -44,6 +45,7 @@ urlpatterns = [
         name="token_refresh",
     ),
     path("api/v1/", include(account_route.router.urls)),
+    path("api/v1/", include(purchase_order_route.router.urls)),
     path(
         "",
         schema_view.with_ui("swagger", cache_timeout=0),

@@ -11,7 +11,7 @@ class User(AbstractUser, AbstractUUID):
     """
 
     mobile = models.CharField(unique=True, max_length=20)
-    email = models.EmailField(max_length=255, null=True, blank=True)
+    email = models.EmailField(max_length=255, null=True, blank=True, unique=True)
     country = models.CharField(
         max_length=30, choices=country_codes, null=True, blank=True
     )
@@ -55,7 +55,7 @@ class BuyerSettings(AbstractUUID):
     # interests
 
     def __str__(self):
-        return f"{self.user.get_full_name()}{self.business_name}"
+        return f"{self.user.get_full_name()}"
 
     class Meta:
         ordering = ("-pk",)

@@ -175,6 +175,14 @@ class POStatusEnum(CustomEnum):
     PENDING = "pending"
     CANCELLED = "cancelled"
 
+    @classmethod
+    def choices(cls):
+        return (
+            (cls.COMPLETED, "Completed"), 
+            (cls.PENDING, "Pending"),
+            (cls.CANCELLED, "Cancelled"),
+            )
+
 
 class QualityRatingEnum(CustomEnum):
     ONE: int = 1

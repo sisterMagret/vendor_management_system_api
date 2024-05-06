@@ -5,13 +5,14 @@ from .models import BuyerSettings, User, VendorProfile
 
 class UserAdmin(admin.ModelAdmin):
 
-    search_fields = ["first_name", "last_name", "mobile", "email"]
+    search_fields = ["first_name", "last_name", "mobile", "email", "group", "city"]
     list_display = (
         "id",
         "mobile",
         "email",
         "first_name",
         "last_name",
+        "group",
         "state",
         "city",
         "zip_code",
@@ -21,9 +22,12 @@ class UserAdmin(admin.ModelAdmin):
 
 
 class BuyerSettingsAdmin(admin.ModelAdmin):
+    search_fields = ("id", "business_name")
     list_display = ("id", "business_name", "user")
 
+
 class VendorProfileAdmin(admin.ModelAdmin):
+    search_fields = ("id", "business_name") 
     list_display = (
         "id", 
         "user", 
@@ -31,7 +35,8 @@ class VendorProfileAdmin(admin.ModelAdmin):
         "on_time_delivery_rate",
         "quality_rating_avg",
         "average_response_time",
-        "fulfillment_rate"
+        "fulfillment_rate",
+         "business_name"
         )
 
 admin.site.register(User, UserAdmin)
