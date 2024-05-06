@@ -126,6 +126,7 @@ def vendor_auth_client(vendor, client, user_data):
     client.credentials(
         HTTP_AUTHORIZATION="Bearer " + auth_client.data["token"]["access"]
     )
+    
     return client
 
 
@@ -191,49 +192,30 @@ def buyer_auth_client(buyer, client, user_data):
 
 
 
-# # @pytest.fixture
-# # def po_data(buyer, second_buyer, vendor):
-# #     first_po_data = dict(
-# #         buyer = buyer,
-# #         po_number = "123234234567",
-# #         vendor= vendor,
-# #         order_date = current_date.strftime("%d:%m:%Y %H:%M:%S"),
-# #         delivery_date= current_date.strftime("%d:%m:%Y %H:%M:%S"),
-# #         items = ["playstation 5", "mc book"],
-# #         quantity = 2,
-# #         status= POStatusEnum.PENDING,
-# #         total_amount= 100000,
-# #         quality_rating = QualityRatingEnum.FIVE,
-# #         issue_date= current_date.strftime("%d:%m:%Y %H:%M:%S"),
-# #         acknowledgment_date=current_date.strftime("%d:%m:%Y %H:%M:%S"),
-# #     )
+@pytest.fixture
+def po_data(buyer, vendor):
+    po = dict(
+        buyer = buyer.user,
+        po_number = "123234234567",
+        vendor= vendor,
+        order_date = current_date.strftime("%d:%m:%Y %H:%M:%S"),
+        delivery_date= current_date.strftime("%d:%m:%Y %H:%M:%S"),
+        items = ["playstation 5", "mc book"],
+        quantity = 2,
+        status= POStatusEnum.PENDING,
+        total_amount= 100000,
+        quality_rating = QualityRatingEnum.FIVE,
+        issue_date= current_date.strftime("%d:%m:%Y %H:%M:%S"),
+        acknowledgment_date=current_date.strftime("%d:%m:%Y %H:%M:%S"),
+    )
 
-# #     second_po_data = dict(
-# #         buyer = second_buyer,
-# #         po_number = "122133234567",
-# #         vendor= vendor,
-# #         order_date = current_date.strftime("%d:%m:%Y %H:%M:%S"),
-# #         delivery_date= current_date.strftime("%d:%m:%Y %H:%M:%S"),
-# #         items = ["playstation 5", "mc book"],
-# #         quantity = 2,
-# #         status= POStatusEnum.PENDING,
-# #         total_amount= 100000,
-# #         quality_rating = QualityRatingEnum.FIVE,
-# #         issue_date= current_date.strftime("%d:%m:%Y %H:%M:%S"),
-# #         acknowledgment_date=current_date.strftime("%d:%m:%Y %H:%M:%S"),
-# #     )
+    return po
 
-# #     return first_po_data, second_po_data
 
-# # @pytest.mark.django_db
-# # @pytest.fixture
-# # def po_instances(po_data) -> tuple:
+@pytest.fixture
+def po_instances(po_data) -> tuple:
+    po = PurchaseOrder.objects.create(**po_data)
+    print(po)
+    assert len(po.po_number) == 12
 
-# #     first_po_data,  second_po_data = po_data
-# #     second_po = PurchaseOrder.objects.create(**second_po_data)
-# #     first_po = PurchaseOrder.objects.create(**first_po_data)
-
-# #     assert len(first_po.po_number) == 12
-# #     assert len(second_po.po_number) == 12
-
-# #     return first_po, second_po
+    return po

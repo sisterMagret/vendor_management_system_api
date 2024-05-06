@@ -69,7 +69,6 @@ class Addon:
             return self.unique_alpha_numeric_generator(model, field)
         return unique
 
-
 class CustomFilter(DjangoFilterBackend):
     def get_filterset_kwargs(self, request, queryset, view):
         kwargs = super().get_filterset_kwargs(request, queryset, view)
@@ -92,15 +91,15 @@ class AbstractBaseViewSet:
         pass
 
     @staticmethod
-    def get_farmer_setting(user):
-        if user.group() != "seller":
-            return None
-        return user.seller
-
-    @staticmethod
     def get_buyer(request):
-        if request.GET.get("farmer_id") is None:
+        if request.GET.get("buyer_id") is None:
             return None
+        
+        elif request.user.id: 
+            return BuyerSettings.objects.filter(
+                user__id=request.user.id
+            ).first()
+        
         return BuyerSettings.objects.filter(
             id=request.GET.get("buy_id")
         ).first()
@@ -109,9 +108,15 @@ class AbstractBaseViewSet:
     def get_vendor(request):
         if request.GET.get("vendor_id") is None:
             return None
+        
+        elif request.user.id: 
+            return VendorProfile.objects.filter(
+                user__id=request.user.id
+            ).first()
+        
         return VendorProfile.objects.filter(
-            id=request.GET.get("vendor_id")
-        ).first()
+                id=request.GET.get("vendor_id")
+            ).first()
 
     @staticmethod
     def error_message_formatter(serializer_errors):
@@ -121,7 +126,38 @@ class AbstractBaseViewSet:
             for name, message in serializer_errors.items()
         }
 
+    @staticmethod
+    def order_date_filtering(date_from, date_to, queryset):
+        if date_from and date_to:
+            try:
+                queryset = queryset.filter(order_date__range=[float(date_from), float(date_to)])
+            except Exception as ex:
+                logger.error(f"error filtering date due to {str(ex)}")
+        return queryset
 
+    @staticmethod
+    def user_obj_permission(request, obj):
+        if not request.user or request.user != obj.buyer:
+            return Response(
+                {
+                    "status": status.HTTP_403_FORBIDDEN,
+                    "message": "You currently do not have access to this resource",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+    
+    @staticmethod
+    def validate_business_name(request, data):
+        settings = data.get("settings")
+        business_name = settings.get("business_name") if settings else None
+        if business_name is not None:
+            vendor = VendorProfile.objects.filter(business_name=business_name)
+            buyer = BuyerSettings.objects.filter(business_name=business_name)
+        
+            if (vendor.exists() and vendor.first().user != request.user) or (buyer.exists() and buyer.first().user != request.user):
+                raise Exception("Business name already exists")
+      
+        
 class BaseViewSet(ViewSet, AbstractBaseViewSet, Addon):
     authentication_classes = [SessionAuthentication, JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -136,6 +172,9 @@ class BaseViewSet(ViewSet, AbstractBaseViewSet, Addon):
         )
 
     def get_list(self, queryset):
+        if isinstance(queryset, set):
+            return list(queryset)
+        
         if "search" in self.request.query_params:
             query_set = self.search_backends.filter_queryset(
                 request=self.request, queryset=queryset, view=self

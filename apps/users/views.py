@@ -17,6 +17,8 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.purchase_orders.models import PurchaseOrder
+from apps.purchase_orders.serializer import PurchaseOrderSerializer
 from apps.users.models import BuyerSettings, VendorProfile
 from apps.users.serializer import (BuyerFormSerializer,
                                             BuyerRegistrationSerializer,
@@ -44,6 +46,8 @@ def get_tokens_for_user(user):
 
 class AuthViewSet(ViewSet, Addon):
     serializer_class = UserSerializer
+    permission_classes = (AllowAny,)
+  
 
     @staticmethod
     def get_user(username):
@@ -256,76 +260,7 @@ class UserViewSet(BaseViewSet):
             )
         return Response(context, status=context["status"])
 
-    @swagger_auto_schema(
-        operation_description="",
-        responses={},
-        operation_summary="Retrieve user information",
-    )
-    @action(
-        detail=False,
-        methods=["get"],
-        description="Get user profile information",
-    )
-    def me(self, request, *args, **kwargs):
-        context = {"status": status.HTTP_200_OK}
-        try:
-            context.update(
-                {"data": self.serializer_class(request.user).data}
-            )
-        except Exception as ex:
-            context.update(
-                {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
-            )
-        return Response(context, status=context["status"])
-
-    @swagger_auto_schema(
-        request_body=UserFormSerializer,
-        operation_description="",
-        responses={},
-        operation_summary="Update user profile endpoint",
-    )
-    def update(self, request, *args, **kwargs):
-        context = {"status": status.HTTP_400_BAD_REQUEST}
-        try:
-            instance = request.user
-            data = self.get_data(request)
-            serializer = UserFormSerializer(data=data, instance=instance)
-            if serializer.is_valid():
-                # validate number
-                all_users_exclude_current = User.objects.all().exclude(
-                    id=request.user.id
-                )
-                if all_users_exclude_current.filter(
-                    mobile=serializer.validated_data.get("mobile")
-                ).exists():
-                    raise Exception("Phone number already being used")
-                if serializer.validated_data.get("email"):
-                    if all_users_exclude_current.filter(
-                        email=serializer.validated_data.get("email")
-                    ).exists():
-                        raise Exception("Email already being used")
-                obj = serializer.update(
-                    instance=instance,
-                    validated_data=serializer.validated_data,
-                )
-                context.update(
-                    {
-                        "data": self.serializer_class(obj).data,
-                        "status": status.HTTP_200_OK,
-                    }
-                )
-            else:
-                context.update(
-                    {
-                        "errors": self.error_message_formatter(
-                            serializer.errors
-                        )
-                    }
-                )
-        except Exception as ex:
-            context.update({"message": str(ex)})
-        return Response(context, status=context["status"])
-    
+   
     @swagger_auto_schema(
         operation_description="",
         responses={},
@@ -335,8 +270,9 @@ class UserViewSet(BaseViewSet):
         detail=False,
         methods=["delete"],
         description="Deletes user account",
+        url_path="delete",
     )
-    def me(self, request, *args, **kwargs):
+    def delete_account(self, request, *args, **kwargs):
         context = {"status": status.HTTP_204_NO_CONTENT}
         try:
             user = get_object_or_404(User, pk=request.user.id)
@@ -362,7 +298,7 @@ class VendorViewSet(BaseViewSet):
     @swagger_auto_schema(
         operation_description="",
         responses={},
-        operation_summary="List all user vendors account",
+        operation_summary="List all vendors account",
     )
     def list(self, request, *args, **kwargs):
         context = {"status": status.HTTP_200_OK}
@@ -379,18 +315,46 @@ class VendorViewSet(BaseViewSet):
                 {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
             )
         return Response(context, status=context["status"])
+    
+    @action(
+        detail=False,
+        methods=["get"],
+        description="Get vendor customers",
+        url_path="buyers",
+    )
+    @swagger_auto_schema(
+        operation_description="",
+        responses={},
+        operation_summary="List all vendor customers",
+    )
+    def buyers_list(self, request, *args, **kwargs):
+        context = {"status": status.HTTP_200_OK}
+        try:
+            queryset = {po.buyer for po in PurchaseOrder.objects.filter(vendor__user=request.user)}
+            paginate = self.get_paginated_data(
+                queryset=self.get_list(queryset),
+                serializer_class=UserSerializer,
+            )
+            context.update(
+                {"status": status.HTTP_200_OK, "data": paginate}
+            )
+        except Exception as ex:
+            context.update(
+                {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
+            )
+        return Response(context, status=context["status"])
 
     @action(
         detail=False,
         methods=["get"],
-        description="Get vendor profile settings (user preferred farmer account)",
-        url_path="setting",
+        description="Get vendor profile settings ",
+        url_path="profile"
     )
     @method_decorator(vendor_access_only(), name="dispatch")
     def me(self, request, *args, **kwargs):
         context = {"status": status.HTTP_200_OK}
         try:
-            vendor = self.queryset.filter(user=request.user)
+            vendor = self.queryset.filter(user__id=request.user.id)
             if vendor.exists():
                 context.update(
                     {
@@ -413,12 +377,20 @@ class VendorViewSet(BaseViewSet):
         responses={},
         operation_summary="Update vendor profile",
     )
+    @action(
+        detail=False,
+        methods=["put"],
+        description="Update vendor profile settings ",
+        url_path="profile/update",
+    )
     @method_decorator(vendor_access_only(), name="dispatch")
-    def update(self, request, *args, **kwargs):
+    def update_account(self, request, *args, **kwargs):
         context = {"status": status.HTTP_200_OK}
         try:
             data = self.get_data(request)
-            instance = self.get_object()
+            self.validate_business_name(request, data)
+            instance = self.queryset.filter(user__id=request.user.id).first()
+        
             serializer = self.serializer_form_class(
                 instance=instance, data=data
             )
@@ -447,8 +419,8 @@ class VendorViewSet(BaseViewSet):
         return Response(context, status=context["status"])
 
     @swagger_auto_schema(
-        operation_description="Retrieve product details",
-        operation_summary="Retrieve product details",
+        operation_description="Retrieve minimal vendor profile details",
+        operation_summary="Retrieve minimal vendor profile details",
     )
     def retrieve(self, requests, *args, **kwargs):
         context = {"status": status.HTTP_200_OK}
@@ -458,6 +430,34 @@ class VendorViewSet(BaseViewSet):
             context.update({"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)})
         return Response(context, status=context["status"])
 
+    @action(
+        detail=False,
+        methods=["get"],
+        description="Get vendor purchase orders",
+        url_path="purchase-order",
+    )
+    @swagger_auto_schema(
+        operation_description="",
+        responses={},
+        operation_summary="List all vendor purchase orders",
+    )
+    @method_decorator(vendor_access_only(), name="dispatch")
+    def vendor_po_list(self, request, *args, **kwargs):
+        context = {"status": status.HTTP_200_OK}
+        try:
+            queryset = PurchaseOrder.objects.filter(vendor__user=request.user)
+            paginate = self.get_paginated_data(
+                queryset=self.get_list(queryset),
+                serializer_class=PurchaseOrderSerializer,
+            )
+            context.update(
+                {"status": status.HTTP_200_OK, "data": paginate}
+            )
+        except Exception as ex:
+            context.update(
+                {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
+            )
+        return Response(context, status=context["status"])
 
 class BuyerSettingsViewSet(BaseViewSet):
     queryset = BuyerSettings.objects.select_related("user").all()
@@ -469,15 +469,64 @@ class BuyerSettingsViewSet(BaseViewSet):
 
     def get_queryset(self):
         return self.queryset
+    
+    @swagger_auto_schema(
+        operation_description="",
+        responses={},
+        operation_summary="List all buyers account",
+    )
+    def list(self, request, *args, **kwargs):
+        context = {"status": status.HTTP_200_OK}
+        try:
+            paginate = self.get_paginated_data(
+                queryset=self.get_list(self.get_queryset()),
+                serializer_class=self.serializer_class,
+            )
+            context.update(
+                {"status": status.HTTP_200_OK, "data": paginate}
+            )
+        except Exception as ex:
+            context.update(
+                {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
+            )
+        return Response(context, status=context["status"])
+    
+    @action(
+        detail=False,
+        methods=["get"],
+        description="Get buyer vendors",
+        url_path="vendors",
+    )
+    @swagger_auto_schema(
+        operation_description="",
+        responses={},
+        operation_summary="List all buyer vendors",
+    )
+    def vendors_list(self, request, *args, **kwargs):
+        context = {"status": status.HTTP_200_OK}
+        try:
+            queryset = {po.vendor for po in PurchaseOrder.objects.filter(buyer=request.user) if po.vendor}
+            paginate = self.get_paginated_data(
+                queryset=self.get_list(queryset),
+                serializer_class=VendorSerializer,
+            )
+            context.update(
+                {"status": status.HTTP_200_OK, "data": paginate}
+            )
+        except Exception as ex:
+            context.update(
+                {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
+            )
+        return Response(context, status=context["status"])
 
     @action(
         detail=False,
         methods=["get"],
         description="Get buyer profile settings",
-        url_path="setting",
+        url_path="profile",
     )
     @method_decorator(buyer_access_only(), name="dispatch")
-    def me(self, request, *args, **kwargs):
+    def account(self, request, *args, **kwargs):
         context = {"status": status.HTTP_200_OK}
         try:
             instance, _ = self.queryset.get_or_create(user=request.user)
@@ -494,17 +543,25 @@ class BuyerSettingsViewSet(BaseViewSet):
         responses={},
         operation_summary="Update buyer settings",
     )
+    @action(
+        detail=False,
+        methods=["put"],
+        description="Update vendor profile settings ",
+        url_path="profile/update",
+    )
     @method_decorator(buyer_access_only(), name="dispatch")
-    def update(self, request, *args, **kwargs):
+    def update_account(self, request, *args, **kwargs):
         context = {"status": status.HTTP_200_OK}
         try:
             data = self.get_data(request)
-            instance, _ = self.queryset.get_or_create(user=request.user)
+            self.validate_business_name(request, data)
+            
+            instance = self.queryset.filter(user__id=request.user.id).first()
+
             serializer = self.serializer_form_class(
                 instance=instance, data=data
             )
             if serializer.is_valid():
-
                 obj = serializer.update(
                     instance=instance,
                     validated_data=serializer.validated_data,
@@ -525,6 +582,34 @@ class BuyerSettingsViewSet(BaseViewSet):
                     "message": str(ex),
                     "status": status.HTTP_400_BAD_REQUEST,
                 }
+            )
+        return Response(context, status=context["status"])
+
+    @action(
+        detail=False,
+        methods=["get"],
+        description="Get buyer purchase orders",
+        url_path="purchase-order",
+    )
+    @swagger_auto_schema(
+        operation_description="",
+        responses={},
+        operation_summary="List all buyer purchase orders",
+    )
+    def buyer_po_list(self, request, *args, **kwargs):
+        context = {"status": status.HTTP_200_OK}
+        try:
+            queryset = PurchaseOrder.objects.filter(buyer=request.user)
+            paginate = self.get_paginated_data(
+                queryset=self.get_list(queryset),
+                serializer_class=PurchaseOrderSerializer,
+            )
+            context.update(
+                {"status": status.HTTP_200_OK, "data": paginate}
+            )
+        except Exception as ex:
+            context.update(
+                {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
             )
         return Response(context, status=context["status"])
 

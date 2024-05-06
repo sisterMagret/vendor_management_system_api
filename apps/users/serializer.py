@@ -1,5 +1,4 @@
 import logging
-import uuid
 
 from django.apps import apps
 from django.conf import settings
@@ -9,18 +8,10 @@ from rest_framework import serializers
 from apps.users.models import BuyerSettings, User, VendorProfile
 from apps.utils.constant import DATETIME_FORMAT
 from apps.utils.enums import UserGroup
-from apps.utils.random_number_generator import unique_alpha_numeric_generator, unique_number_generator
+from apps.utils.random_number_generator import unique_alpha_numeric_generator, generate_uuid
+
 
 logger = logging.getLogger("authentication")
-
-
-def generate_uuid(model, column):
-    unique = str(uuid.uuid4())
-    kwargs = {column: unique}
-    qs_exists = model.objects.filter(**kwargs).exists()
-    if qs_exists:
-        return generate_uuid(model, column)
-    return unique
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -46,6 +37,7 @@ class UserSerializer(serializers.ModelSerializer):
             "address",
             "avatar",
             "joined_at",
+            "zip_code"
         ]
 
     @staticmethod
@@ -74,9 +66,11 @@ class UserFormSerializer(serializers.Serializer):
     mobile = serializers.CharField(required=True)
     email = serializers.CharField(required=False)
     country = serializers.CharField(required=False)
+    city = serializers.CharField(required=False)
     state = serializers.CharField(required=False)
     zip_code = serializers.CharField(required=False)
     address = serializers.CharField(required=False)
+    username = serializers.CharField(required=False)
 
     def update(self, instance, validated_data):
         for k, v in validated_data.items():
@@ -99,27 +93,29 @@ class BuyerSettingsSerializer(serializers.ModelSerializer):
         fields = ["id", "user", "business_name"]
 
 
-class BuyerFormSerializer(serializers.Serializer):
+class BuyerMiniSerializer(serializers.Serializer):
     business_name = serializers.CharField(required=False)
+
+
+class BuyerFormSerializer(serializers.Serializer):
+    settings = BuyerMiniSerializer(required=False)
+    user = UserFormSerializer(required=False)
 
     def create(self, validated_data):
         pass
 
     def update(self, instance, validated_data):
-        _ = BuyerSettings.objects.filter(id=instance.id).update(
-            **validated_data
-        )
+        if validated_data.get("settings"):
+            _ = BuyerSettings.objects.filter(id=instance.id).update(**validated_data.get("settings"))
         instance.refresh_from_db()
+        if validated_data.get("user"):
+            
+            for k, v in validated_data.get("user").items():
+                setattr(instance.user, k, v)
+            instance.user.save()
         return instance
 
-    def validate(self, attrs):
-        if BuyerSettings.objects.filter(
-            business_name=attrs.get("business_name")
-        ).exists():
-            raise Exception("Business name already exists")
-        return attrs
-
-
+   
 class BuyerRegistrationSerializer(serializers.Serializer):
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
@@ -160,12 +156,21 @@ class BuyerRegistrationSerializer(serializers.Serializer):
         instance.save()
         # send email notification to buyer
         return instance
-
+       
     def validate(self, attrs):
         if User.objects.filter(email=attrs.get("email")).exists():
             raise Exception("User with this email already exist")
+        
         if User.objects.filter(mobile=attrs.get("mobile")).exists():
             raise Exception("User with this mobile number already exist")
+
+        if VendorProfile.objects.filter(
+            business_name=attrs.get("business_name")
+        ).exists() or BuyerSettings.objects.filter(
+            business_name=attrs.get("business_name")
+        ).exists():
+            raise Exception("Business name already exists")
+        
         return attrs
 
 
@@ -215,6 +220,22 @@ class VendorRegistrationSerializer(serializers.Serializer):
         instance.groups.add(group)
         instance.save()
         return instance
+    
+    def validate(self, attrs):
+        if User.objects.filter(email=attrs.get("email")).exists():
+            raise Exception("User with this email already exist")
+        
+        if User.objects.filter(mobile=attrs.get("mobile")).exists():
+            raise Exception("User with this mobile number already exist")
+        
+        if VendorProfile.objects.filter(
+            business_name=attrs.get("business_name")
+        ).exists() or BuyerSettings.objects.filter(
+            business_name=attrs.get("business_name")
+        ).exists():
+            raise Exception("Business name already exists")
+        
+        return attrs
 
 
 class VendorSerializer(serializers.ModelSerializer):
@@ -225,31 +246,27 @@ class VendorSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class VendorMiniSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VendorProfile
-        fields = [
-            "id",
-            "vendor_code",
-            "on_time_delivery_rate",
-            "quality_rating_avg",
-            "average_response_time",
-            "fulfillment_rate"
-        ]
+class VendorMiniSerializer(serializers.Serializer):
+    business_name = serializers.CharField(required=False)
 
 
 class VendorFormSerializer(serializers.Serializer):
-    user = UserSerializer(read_only=True)
+    user = UserFormSerializer(required=False)
+    settings = VendorMiniSerializer(required=False)
 
     def update(self, instance, validated_data):
-        user = validated_data.pop("user", None)
-
-        if user:
-            _ = User.objects.filter(id=instance.user.id).update(**user)
-
-        for k, v in validated_data.items():
-            instance.__setattr__(k, v)
+        if validated_data.get("settings"):
+            _ = VendorProfile.objects.filter(id=instance.id).update(**validated_data.get("settings"))
+        instance.refresh_from_db()
+        if validated_data.get("user"):
+            for k, v in validated_data.get("user").items():
+                setattr(instance.user, k, v)
+            instance.user.save()
         return instance
 
     def create(self, validated_data):
         pass
+
+    
+       
+       
