@@ -92,31 +92,32 @@ class AbstractBaseViewSet:
 
     @staticmethod
     def get_buyer(request):
-        if request.GET.get("buyer_id") is None:
-            return None
+        if request.GET.get("buyer_id") is not None:
+            return BuyerSettings.objects.filter(
+            id=request.GET.get("buy_id")
+            ).first()
         
-        elif request.user.id: 
+        if request.user.id: 
             return BuyerSettings.objects.filter(
                 user__id=request.user.id
             ).first()
         
-        return BuyerSettings.objects.filter(
-            id=request.GET.get("buy_id")
-        ).first()
+        return None
 
     @staticmethod
     def get_vendor(request):
-        if request.GET.get("vendor_id") is None:
-            return None
+        if request.GET.get("vendor_id") is not None:
+            return VendorProfile.objects.filter(
+                id=request.GET.get("vendor_id")
+            ).first()
         
         elif request.user.id: 
             return VendorProfile.objects.filter(
                 user__id=request.user.id
             ).first()
         
-        return VendorProfile.objects.filter(
-                id=request.GET.get("vendor_id")
-            ).first()
+        return None
+        
 
     @staticmethod
     def error_message_formatter(serializer_errors):

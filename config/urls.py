@@ -24,7 +24,7 @@ schema_view = get_schema_view(
             encoding="utf8"
         ),
         terms_of_service="https://www.google.com/policies/terms/",
-        contact=openapi.Contact(email="contact@farmfeat.com"),
+        contact=openapi.Contact(email="wistler4u@.com"),
         license=openapi.License(name="BSD License"),
         url=f"{env_loc('BASE_BE_URL', 'api/')}",
     ),

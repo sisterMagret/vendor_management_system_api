@@ -1,6 +1,8 @@
 import logging
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 # Create your views here.
 from django.utils.decorators import method_decorator
 from drf_yasg import openapi
@@ -10,6 +12,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.users.models import VendorProfile
+from apps.utils.enums import POStatusEnum
 
 from .models import PurchaseOrder
 from .serializer import PurchaseOrderAcknowledgementSerializer, PurchaseOrderSerializer, PurchaseOrderFormSerializer
@@ -22,7 +25,7 @@ logger = logging.getLogger("purchase_order")
  
 class PurchaseOrderViewSet(BaseViewSet):
     serializer_class = PurchaseOrderSerializer
-    queryset = PurchaseOrder.objects.select_related("buyer", "vendor").all()
+    queryset = PurchaseOrder.objects.all()
     serializer_form_class = PurchaseOrderFormSerializer
     filter_fields = [
         "vendor__id",
@@ -49,7 +52,7 @@ class PurchaseOrderViewSet(BaseViewSet):
         )
         if VendorProfile.objects.filter(user__id=self.request.user.id).exists():
             return self.queryset.filter(vendor=self.get_vendor(self.request)).distinct().order_by("-order_date")
-        return self.queryset.filter(vendor=self.get_vendor(self.request)).distinct().order_by("-order_date")
+        return self.queryset.filter(Q(vendor=self.get_vendor(self.request)) | Q(buyer=self.request.user)).distinct().order_by("-order_date")
 
     def get_object(self):
         return get_object_or_404(PurchaseOrder, id=self.kwargs.get("pk"))
@@ -180,7 +183,7 @@ class PurchaseOrderViewSet(BaseViewSet):
 
             if serializer.is_valid():
                 serializer.validated_data.update(
-                    po_number=self.unique_number_generator(PurchaseOrder, "po_number", 16),
+                    po_number=self.unique_number_generator(PurchaseOrder, "po_number", 12),
                     buyer=request.user,
                     )
                 instance = serializer.create(serializer.validated_data)
@@ -235,9 +238,8 @@ class PurchaseOrderViewSet(BaseViewSet):
 
     @swagger_auto_schema(
             operation_summary="The endpoint handles purchase order acknowledgement by vendor",
-            request_body=PurchaseOrderAcknowledgementSerializer
             )
-    @action(detail=True, methods=["put"], url_path="acknowledge")
+    @action(detail=True, methods=["post"], url_path="acknowledge")
     @method_decorator(vendor_access_only(), name="dispatch")
     def po_acknowledgement(self, request, *args, **kwargs):
         """
@@ -246,7 +248,7 @@ class PurchaseOrderViewSet(BaseViewSet):
         context = {"status": status.HTTP_201_CREATED}
         try:
             instance = self.get_object()
-           
+            
             if not instance.vendor or request.user != instance.vendor.user:
                 return Response(
                 {
@@ -256,10 +258,11 @@ class PurchaseOrderViewSet(BaseViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-            data = self.get_data(request)
-            serializer = PurchaseOrderAcknowledgementSerializer(data=data, instance=instance)
-            if serializer.is_valid():
-                _ = serializer.update(instance, serializer.validated_data)
+            if instance.status == POStatusEnum.COMPLETED:
+                
+                instance.acknowledgment_date = timezone.now()
+                instance.save()
+                
                 context.update(
                         {
                             "data": self.serializer_class(self.get_object()).data,
@@ -269,7 +272,7 @@ class PurchaseOrderViewSet(BaseViewSet):
             else:
                 context.update(
                     {
-                        "errors": self.error_message_formatter(serializer.errors),
+                        "message": "Cannot acknowledge Purchase Order with status other than 'completed'",
                         "status": status.HTTP_400_BAD_REQUEST,
                     }
                 )

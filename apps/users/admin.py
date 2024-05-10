@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import BuyerSettings, User, VendorProfile
+from .models import BuyerSettings, User, VendorProfile, VendorHistoricalPerformance
 
 
 class UserAdmin(admin.ModelAdmin):
@@ -27,18 +27,33 @@ class BuyerSettingsAdmin(admin.ModelAdmin):
 
 
 class VendorProfileAdmin(admin.ModelAdmin):
-    search_fields = ("id", "business_name") 
+    search_fields = ("id", "business_name", "vendor_code") 
     list_display = (
         "id", 
         "user", 
         "vendor_code",
+        "business_name"
+        )
+    
+
+class VendorHistoricalPerformanceAdmin(admin.ModelAdmin):
+    search_fields = (
+        "id",   
         "on_time_delivery_rate",
         "quality_rating_avg",
         "average_response_time",
         "fulfillment_rate",
-         "business_name"
+         ) 
+    list_display = (
+        "id", 
+        "vendor",  
+        "on_time_delivery_rate",
+        "quality_rating_avg",
+        "average_response_time",
+        "fulfillment_rate",
         )
-
+    
 admin.site.register(User, UserAdmin)
 admin.site.register(BuyerSettings, BuyerSettingsAdmin)
 admin.site.register(VendorProfile, VendorProfileAdmin)
+admin.site.register(VendorHistoricalPerformance, VendorHistoricalPerformanceAdmin)

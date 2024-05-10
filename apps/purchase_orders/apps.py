@@ -6,4 +6,4 @@ class PurchaseOrdersConfig(AppConfig):
     name = "apps.purchase_orders"
 
     def ready(self):
-        from . import signals
+        from ..users import signals
