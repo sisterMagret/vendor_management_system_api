@@ -109,27 +109,6 @@ def test_vendor_model(db, new_user):
     assert vendor.business_name == "Car supplies"
 
 
-# def test_register_vendor(user_data, client):
-#         """
-#         test user buyer
-#         """
-#         user_data.update({
-#             "business_name": "Sony",
-#             "is_accept_terms_and_condition": True
-#             })
-#         response = client.post(
-#                 f"{register_endpoint}{UserGroup.BUYER}",
-#                 user_data, format="json",
-#                 content_type="application/json"
-#         )
-#         assert response.status_code == status.HTTP_201_CREATED
-
-
-def test_get_vendor_profile(vendor_auth_client):
-    response = vendor_auth_client.get(f"/api/v1/vendors/profile/")
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data["data"]["user"]["group"] == UserGroup.VENDOR
-
 
 def test_delete_account(vendor_auth_client):
     response = vendor_auth_client.delete(f"/api/v1/users/delete/")
@@ -146,24 +125,18 @@ def test_list_vendors(vendor_auth_client):
     response = vendor_auth_client.get(f"/api/v1/vendors/")
     assert response.status_code == status.HTTP_200_OK
 
-# def test_list_buyer_vendors(buyer_auth_client):
-#     response = buyer_auth_client.get(f"/api/v1/buyer/vendors/")
-#     assert response.status_code == status.HTTP_200_OK
 
-# def test_list_vendor_buyers(vendor_auth_client):
-#     response = vendor_auth_client.get(f"/api/v1/vendor/buyers/")
-#     print(response.json())
-#     assert response.status_code == status.HTTP_200_OK
-
-# def test_list_all_users(vendor_auth_client):
-#     response = vendor_auth_client.get(f"/api/v1/users/")
-#     assert response.status_code == status.HTTP_200_OK
+def test_list_buyer_vendors(buyer_auth_client):
+    response = buyer_auth_client.get(f"/api/v1/buyers/vendors/")
+    assert response.status_code == status.HTTP_200_OK
 
 
-# def test_refresh_tokens(buyer_auth_client):
-#     auth_headers = buyer_auth_client.credentials()
-#     print(auth_headers)
-#     # assert auth_headers["HTTP_AUTHORIZATION"].startswith("Bearer ")
-#     # response = vendor_auth_client.get(f"/api/v1/identity/refresh/")
-#     # assert response.status_code == status.HTTP_200_OK
-#     assert True
+def test_list_vendor_buyers(vendor_auth_client):
+    response = vendor_auth_client.get(f"/api/v1/vendors/buyers/")
+    assert response.status_code == status.HTTP_200_OK
+
+
+def test_list_all_users(vendor_auth_client):
+    response = vendor_auth_client.get(f"/api/v1/users/")
+    assert response.status_code == status.HTTP_200_OK
+

@@ -143,33 +143,6 @@ class UserGroup(CustomEnum):
         return ((cls.BUYER, "BUYER"), (cls.VENDOR, "VENDOR"))
 
 
-class DeliveryType(CustomEnum):
-    PICKUP = "pickup"
-    DELIVER = "deliver"
-
-    @classmethod
-    def choices(cls):
-        return ((cls.PICKUP, "Pickup"), (cls.DELIVER, "Delivery"))
-
-
-class EstimatedDeliveryDurationType(CustomEnum):
-    HOUR = "hour"
-    DAY = "day"
-    WEEK = "week"
-    MONTH = "month"
-    YEAR = "year"
-
-    @classmethod
-    def choices(cls):
-        return (
-            (cls.HOUR, "Hour"),
-            (cls.DAY, "DAY"),
-            (cls.WEEK, "WEEK"),
-            (cls.MONTH, "MONTH"),
-            (cls.YEAR, "YEAR"),
-        )
-
-
 class POStatusEnum(CustomEnum):
     COMPLETED = "completed"
     PENDING = "pending"
@@ -182,23 +155,3 @@ class POStatusEnum(CustomEnum):
             (cls.PENDING, "Pending"),
             (cls.CANCELLED, "Cancelled"),
             )
-
-
-class QualityRatingEnum(CustomEnum):
-    ONE: int = 1
-    TWO: int = 2
-    THREE: int = 3
-    FOUR: int = 4
-    FIVE: int = 5
-
-
-class FulfillmentStatusEnum(CustomEnum):
-    DELIVERED = "delivered"
-    NOT_DELIVERED = "not_delivered"
-    PENDING = "pending"
-    CANCELLED = "cancelled"
-
-
-class GlobalUrlConfigEnum(CustomEnum):
-    API_URL = ""
-    LOGIN_URL = ""

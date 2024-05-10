@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
+import sys
 
 from decouple import config
 
@@ -20,13 +21,8 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = (
     "django-insecure-a#&@w1%!c0h)yx#f202=zj-v(s%_%#r__(_=+6qnvjmpoc)yqi"
 )
@@ -34,7 +30,7 @@ SECRET_KEY = (
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -59,7 +55,6 @@ INSTALLED_APPS += [
 INSTALLED_APPS += [
     "apps.users",
     "apps.purchase_orders",
-    "apps.metrics",
 ]
 
 MIDDLEWARE = [
@@ -210,6 +205,55 @@ if DEBUG is False:
 BASE_BE_URL = config("BASE_BE_URL", "api/auth")
 
 
-import pytest
+# LOGGING CONFIGURATION
+LOGS_DIR = os.path.join(PROJECT_DIR, "../logs")
 
-pytest.mark.django_db
+if not os.path.isdir(LOGS_DIR):
+    os.mkdir(LOGS_DIR)
+
+LOG_FORMAT = "[%(levelname)s][%(asctime)s]%(message)s - %(pathname)s#lines-%(lineno)s[%(funcName)s]"
+LOG_DATE_FORMAT = "%d/%b/%Y %H:%M:%S"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "[%(asctime)s] [%(levelname)s %(levelno)s] [%(filename)s:%(lineno)s] %(message)s",
+            "datefmt": "%d/%b/%Y %H:%M:%S",
+        },
+    },
+    "handlers": {
+        "console": {"level": "DEBUG", "class": "logging.StreamHandler", "stream": sys.stdout},
+        "user_handler": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOGS_DIR, "user.log"),
+            "formatter": "standard",
+            "maxBytes": 104857600,
+        },
+        "purchase_order_handler": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOGS_DIR, "purchase_order.log"),
+            "formatter": "standard",
+            "maxBytes": 104857600,
+        }
+    },
+    "loggers": {
+        "consumer": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        },
+        "users": {
+            "handlers": ["user_handler"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "purchase_orde": {
+            "handlers": ["purchase_order_handler"],
+            "level": "INFO",
+            "propagate": True,
+        }
+    },
+}

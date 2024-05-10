@@ -18,12 +18,20 @@ class Item(AbstractUUID):
 
 class PurchaseOrder(VendorAbstract, AbstractUUID):
     """Purchase Order"""
+    # vendor = models.ForeignKey(
+    #     "users.VendorProfile",
+    #     related_name="vendor_purchase_orders",
+    #     on_delete=models.DO_NOTHING,
+    #     null=True,
+    #     blank=True,
+    # )
     buyer = models.ForeignKey(
         "users.User",
         on_delete=models.DO_NOTHING,
         null=True,
         blank=True,
         related_name="user_purchase_order",
+        editable=False
     )
     po_number = models.CharField(max_length=16, unique=True, editable=False)
     order_date = models.DateTimeField(auto_now=True, editable=False)
@@ -37,8 +45,8 @@ class PurchaseOrder(VendorAbstract, AbstractUUID):
         default=0.0,
          validators=[MinValueValidator(0.0), MaxValueValidator(5.0), DecimalValidator(max_digits=2, decimal_places=1)]
         )
-    issue_date = models.DateTimeField(null=True, blank=True) #DateTimeField - Timestamp when the PO was issued to the vendor. 
-    acknowledgment_date = models.DateTimeField(blank=True, null=True) #acknowledged the PO.
+    issue_date = models.DateTimeField(null=True, blank=True) 
+    acknowledgment_date = models.DateTimeField(blank=True, null=True, editable=False) 
     updated_at = models.DateTimeField(auto_now=True, editable=False)
  
 
@@ -47,4 +55,3 @@ class PurchaseOrder(VendorAbstract, AbstractUUID):
         db_table = "purchase_order"
         verbose_name = "Purchase order"
         verbose_name_plural = "Purchase orders"
-

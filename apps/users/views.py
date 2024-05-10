@@ -1,8 +1,7 @@
 import logging
 from datetime import datetime
-
 import pytz
-from django.apps import apps
+
 from django.contrib.auth import authenticate, get_user_model, logout
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
@@ -20,18 +19,21 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.purchase_orders.models import PurchaseOrder
 from apps.purchase_orders.serializer import PurchaseOrderSerializer
 from apps.users.models import BuyerSettings, VendorProfile
-from apps.users.serializer import (BuyerFormSerializer,
-                                            BuyerRegistrationSerializer,
-                                            BuyerSettingsSerializer,
-                                            UserFormSerializer, UserSerializer,
-                                            VendorFormSerializer,
-                                            VendorRegistrationSerializer,
-                                            VendorSerializer)
-from apps.utils.base import (Addon,BaseViewSet)
+from apps.users.serializer import (
+    BuyerFormSerializer,
+    BuyerRegistrationSerializer,
+    BuyerSettingsSerializer,
+    UserSerializer,
+    VendorFormSerializer,
+    VendorHistoricalPerformanceSerializer,
+    VendorRegistrationSerializer,
+    VendorSerializer,
+)
+from apps.utils.base import Addon, BaseViewSet
 from apps.utils.enums import UserGroup
 from apps.utils.permissions import buyer_access_only, vendor_access_only
 
-logger = logging.getLogger("authentication")
+logger = logging.getLogger("users")
 
 User = get_user_model()
 
@@ -47,7 +49,6 @@ def get_tokens_for_user(user):
 class AuthViewSet(ViewSet, Addon):
     serializer_class = UserSerializer
     permission_classes = (AllowAny,)
-  
 
     @staticmethod
     def get_user(username):
@@ -355,14 +356,17 @@ class VendorViewSet(BaseViewSet):
         context = {"status": status.HTTP_200_OK}
         try:
             vendor = self.queryset.filter(user__id=request.user.id)
+
             if vendor.exists():
+                
+                performance_metrics = vendor.first().calculate_performance_metrics
+                
+                performance_metrics.update(vendor=VendorSerializer(vendor.first()).data)
                 context.update(
                     {
-                        "data": self.serializer_class(
-                            vendor.first()
-                        ).data
+                        "data": performance_metrics
                     }
-                )
+                )   
             else:
                 raise Exception("profile does not exist")
         except Exception as ex:
@@ -458,6 +462,67 @@ class VendorViewSet(BaseViewSet):
                 {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
             )
         return Response(context, status=context["status"])
+
+    @action(
+        detail=True,
+        methods=["get"],
+        description="Get vendor performance.",
+        url_path="performance"
+    )
+    @swagger_auto_schema(
+        operation_description="",
+        responses={},
+        operation_summary="Get vendor performance",
+    )
+    def performance(self, request, *args, **kwargs):
+        context = {"status": status.HTTP_200_OK}
+        try:
+            vendor = self.get_object()
+            performance_metrics = vendor.calculate_performance_metrics
+            performance_metrics.update(vendor=VendorSerializer(vendor).data)
+            context.update(
+                {
+                    "data": performance_metrics
+                }
+            )   
+           
+        except Exception as ex:
+            context.update(
+                {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
+            )
+        return Response(context, status=context["status"])
+
+
+    @action(
+        detail=True,
+        methods=["get"],
+        description="Get vendor performance history.",
+        url_path="performance/history"
+    )
+    @swagger_auto_schema(
+        operation_description="",
+        responses={},
+        operation_summary="Get vendor performance history",
+    )
+    def performance(self, request, *args, **kwargs):
+        context = {"status": status.HTTP_200_OK}
+        try:
+            vendor = self.get_object()
+            performance_history = vendor.vendor_profile.select_related('vendor').all()
+
+
+            context.update(
+                {
+                    "data": VendorHistoricalPerformanceSerializer(performance_history, many=True).data
+                }
+            )   
+           
+        except Exception as ex:
+            context.update(
+                {"status": status.HTTP_400_BAD_REQUEST, "message": str(ex)}
+            )
+        return Response(context, status=context["status"])
+
 
 class BuyerSettingsViewSet(BaseViewSet):
     queryset = BuyerSettings.objects.select_related("user").all()

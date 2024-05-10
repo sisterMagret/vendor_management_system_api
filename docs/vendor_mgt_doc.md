@@ -1,11 +1,6 @@
 **Overview**
 
-FARMEAT is software solution meant not just to connect farmer's to consumers to carryout transactions on products smoothly, but also provides means for consumers or investors to also invest in farmers for their products or pre ordered products. The app also provides a logistic platform which can serve as a buffer between consumer and farmers during transactions.
-
-**Authentication flow**
-
-User authentication flow is being handled by a separated microservice that is being hosted separately on a domain name ``id.farmfeat.com`` , this microservice handle all the authentication and authorization that is being carried out on the system.
-
+The Vendor Management System (VMS) is a web-based application designed to streamline and automate the process of managing vendors and their contracts. The system provides a centralized platform for organizations to manage their vendor relationships, ensuring compliance with company policies and regulations, and facilitating efficient communication between vendors and internal teams.
 
 
 **USER CATEGORY PAYLOAD**:
@@ -28,5 +23,3 @@ User authentication flow is being handled by a separated microservice that is be
         password
         type -> this can either be individual or business
         business_name -> to be added to payload if ``type`` is business
-
-

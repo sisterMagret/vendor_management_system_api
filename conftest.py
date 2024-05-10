@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 
 from apps.users.models import BuyerSettings
 from apps.purchase_orders.models import PurchaseOrder
-from apps.utils.enums import POStatusEnum, QualityRatingEnum, UserGroup
+from apps.utils.enums import POStatusEnum, UserGroup
 from apps.users.models import VendorProfile
 from apps.utils.random_number_generator import unique_alpha_numeric_generator
 from tests.factories import UserFactory
@@ -156,42 +156,6 @@ def buyer_auth_client(buyer, client, user_data):
     return client
 
 
-
-
-
-
-
-
-# # @pytest.fixture
-# # def second_vendor(db,user_payload) -> VendorProfile:
-# #     """
-# #     Fixture to create a user.
-# #     """
-# #     user_payload.update(
-# #         first_name=faker.first_name(),
-# #         last_name=faker.last_name(),
-# #         email=faker.email(),
-# #         mobile=faker.phone_number(),
-# #         password="$rootpa$$",
-# #         username=faker.user_name(),
-# #     )
-# #     user = User.objects.create(**user_payload)
-# #     user.set_password(user_payload.get("password"))
-# #     group, _ = Group.objects.get_or_create(name=UserGroup.VENDOR)
-# #     user.groups.add(group)
-# #     user.save()
-
-# #     vendor_data = dict(
-# #         ref_code= "24532545",
-# #         user=user
-# #     )
-# #     vendor = VendorProfile.objects.create(**vendor_data)
-# #     assert len(vendor.ref_code) == 8
-# #     return vendor
-
-
-
-
 @pytest.fixture
 def po_data(buyer, vendor):
     po = dict(
@@ -204,7 +168,7 @@ def po_data(buyer, vendor):
         quantity = 2,
         status= POStatusEnum.PENDING,
         total_amount= 100000,
-        quality_rating = QualityRatingEnum.FIVE,
+        quality_rating = 3.4,
         issue_date= current_date.strftime("%d:%m:%Y %H:%M:%S"),
         acknowledgment_date=current_date.strftime("%d:%m:%Y %H:%M:%S"),
     )
@@ -215,7 +179,6 @@ def po_data(buyer, vendor):
 @pytest.fixture
 def po_instances(po_data) -> tuple:
     po = PurchaseOrder.objects.create(**po_data)
-    print(po)
     assert len(po.po_number) == 12
 
     return po
